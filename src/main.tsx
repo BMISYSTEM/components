@@ -18,6 +18,6 @@ createRoot(document.getElementById('root')!).render(
     {/* <Tabla data={data} /> */}
     {/* <Calendario/> */}
     {/* <TextAreaFormat/> */}
-    {/* <Dashboard/> */}
+      <Dashboard/>
   </StrictMode>,
 )
