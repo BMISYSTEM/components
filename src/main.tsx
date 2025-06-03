@@ -17,7 +17,7 @@ createRoot(document.getElementById('root')!).render(
   <StrictMode>
     {/* <Tabla data={data} /> */}
     {/* <Calendario/> */}
-    {/* <TextAreaFormat/> */}
-      <Dashboard/>
+    <TextAreaFormat/>
+        {/* <Dashboard/> */}
   </StrictMode>,
 )
