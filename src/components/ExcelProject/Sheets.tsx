@@ -1,4 +1,6 @@
+import { ChartArea, ChartCandlestick, ChartColumn, ChartLine, ChartPie, ChartScatter, FileText, ImageUp, MapPlus, Sheet, TableConfig } from "lucide-react";
 import { useEffect, useState } from "react"
+import 'animate.css';
 interface ConfigSheet {
     columns: number,
     rows: number,
@@ -24,6 +26,9 @@ export const Sheets = () => {
     const [rowsHeigths, setRowsHeigths] = useState(
         Array(configSheet.rows).fill(30) // ancho inicial de 100px
     );
+    // constroles 
+    const [configuraciones,setConfiguraciones] = useState(false)
+    const [graficos,setGraficos] = useState(false)
     function handleKeyDown(e: any, row: number, col: number) {
         let newRow = row;
         let newCol = col;
@@ -104,90 +109,208 @@ export const Sheets = () => {
         };
 
     return (
-        <section className="flex flex-col w-full h-screen overflow-hidden bg-white">
-            <table className="overflow-auto">
-                <thead>
-                    <tr className="">
-                        {Array.from({ length: configSheet.columns }).map((_, index) => (
-                            <th key={index}
-                                style={{
-                                    width: index > 0 ? columnWidths[index] + "px" : "50px",
-                                }}
-                                className="border border-slate-300 text-sm text-black m-0 p-0"
-                            >
-                                <div onClick={()=>setColumnSelect((index))} className="flex flex-row  relative">
-                                    <span className="font-semibold">
-                                        {index} 
-                                    </span>
-                                    <div
-                                        className="absolute right-0 top-0 h-full w-1  cursor-col-resize"
-                                        onMouseDown={(e) => handleMouseDownx(e, index)}
-                                    ></div>
-                                </div>
-                            </th>
-                        ))}
-                    </tr>
-                </thead>
-                <tbody>
-                    {
-                        Array.from({ length: configSheet.rows }).map((_, index1) => (
-                            <tr key={index1} className="p-0 m-0 "
-                                
-                            >
-                                {Array.from({ length: configSheet.columns }).map((_, index2) => (
-                                    <td key={index2}
-                                        style={{
-                                            width: index2 > 0 ? "auto" : "50px",
-                                            background: index2 > 0 ? "transparent" : "#E0E0E0",
-                                            height: "30px",
-                                            margin:"0",
-                                            padding:"0"
-                                        }}
-                                        className="m-0 p-0 border border-slate-300 text-sm text-black "
-                                    >
-                                        {index2 > 0 ?
-                                            <input
-                                                data-row={index1}
-                                                data-col={index2}
-                                                onKeyDown={(e) => handleKeyDown(e, index1, index2)}
-                                                type="text"
-                                                style={{
-                                                    height:rowsHeigths[index1],
-                                                    margin:"0",padding:"0",
-                                                    backgroundColor:rowSelect === (index1+1) ? "#07BBF280" :
-                                                    columnSelect === (index2) ? "#07BBF280" :
-                                                    "transparent"
-                                                    
-                                                }}
-                                                onFocus={()=>{
-                                                    setRowSelect(0)
-                                                    setColumnSelect(0)
-                                                }}
-                                                className="w-full h-full m-0 p-0 border-0 border-none outline-none
-                                                focus:ring-1 ring-blue-500
-                                                "
-                                            />
-                                            // imagen 
-                                            :
-                                            <div
-                                            onClick={()=>setRowSelect((index1+1))}
-                                            className="h-full relative">
-                                                <span>{index1}</span>
+        <section className="flex flex-col">
+            <div className="h-auto flex flex-wrap px-5 py-2 gap-1">
+                <button className="flex flex-col items-center justify-center gap-1 border h-14 p-1 rounded-sm hover:border-blue-300 ">
+                    <FileText size={15} />
+                    <span className="text-xs">Imprimir</span>
+                </button>
+                <button className="flex flex-col items-center justify-center gap-1 border h-14 p-1 rounded-sm hover:border-blue-300 ">
+                    <ImageUp  size={15} />
+                    <span className="text-xs">Cargar</span>
+                </button>
+                <button className="flex flex-col items-center justify-center gap-1 border h-14 p-1 rounded-sm hover:border-blue-300 ">
+                    <Sheet size={15} />
+                    <span className="text-xs">Exporta</span>
+                </button>
+                <button onClick={()=>setGraficos(!graficos)} className="flex flex-col items-center justify-center gap-1 border h-14 p-1 rounded-sm hover:border-blue-300 ">
+                    <ChartPie size={15} />
+                    <span className="text-xs">Graficos</span>
+                </button>
+                <button onClick={()=>setConfiguraciones(!configuraciones)} className="flex flex-col items-center justify-center gap-1 border h-14 p-1 rounded-sm hover:border-blue-300 ">
+                    <TableConfig size={15} />
+                    <span className="text-xs">Configuraciones</span>
+                </button>
+            </div>
+            <section id="areaImpresion" className="flex flex-col w-full h-screen overflow-hidden bg-white">
+                <table className="overflow-auto">
+                    <thead>
+                        <tr className="">
+                            {Array.from({ length: configSheet.columns }).map((_, index) => (
+                                <th key={index}
+                                    style={{
+                                        width: index > 0 ? columnWidths[index] + "px" : "50px",
+                                    }}
+                                    className="border border-slate-300 text-sm text-black m-0 p-0"
+                                >
+                                    <div onClick={()=>setColumnSelect((index))} className="flex flex-row  relative">
+                                        <span className="font-semibold">
+                                            {index} 
+                                        </span>
+                                        <div
+                                            className="absolute right-0 top-0 h-full w-1  cursor-col-resize"
+                                            onMouseDown={(e) => handleMouseDownx(e, index)}
+                                        ></div>
+                                    </div>
+                                </th>
+                            ))}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {
+                            Array.from({ length: configSheet.rows }).map((_, index1) => (
+                                <tr key={index1} className="p-0 m-0 "
+                                    
+                                >
+                                    {Array.from({ length: configSheet.columns }).map((_, index2) => (
+                                        <td key={index2}
+                                            style={{
+                                                width: index2 > 0 ? "auto" : "50px",
+                                                background: index2 > 0 ? "transparent" : "#E0E0E0",
+                                                height: "30px",
+                                                margin:"0",
+                                                padding:"0"
+                                            }}
+                                            className="m-0 p-0 border border-slate-300 text-sm text-black "
+                                        >
+                                            {index2 > 0 ?
+                                                <input
+                                                    data-row={index1}
+                                                    data-col={index2}
+                                                    onKeyDown={(e) => handleKeyDown(e, index1, index2)}
+                                                    type="text"
+                                                    style={{
+                                                        height:rowsHeigths[index1],
+                                                        margin:"0",padding:"0",
+                                                        backgroundColor:rowSelect === (index1+1) ? "#07BBF280" :
+                                                        columnSelect === (index2) ? "#07BBF280" :
+                                                        "transparent"
+                                                        
+                                                    }}
+                                                    onFocus={()=>{
+                                                        setRowSelect(0)
+                                                        setColumnSelect(0)
+                                                    }}
+                                                    className="w-full h-full m-0 p-0 border-0 border-none outline-none
+                                                    focus:ring-1 ring-blue-500
+                                                    "
+                                                />
+                                                // imagen 
+                                                :
                                                 <div
-                                                    className="absolute bottom-0  h-1 w-full  cursor-row-resize"
-                                                    onMouseDown={(e) => handleMouseDowny(e, index1)}
-                                                ></div>
-                                            </div>
-                                        }
-                                    </td>
-                                ))}
-                            </tr>
-                        ))
-                    }
-                </tbody>
-            </table>
+                                                onClick={()=>setRowSelect((index1+1))}
+                                                className="h-full relative">
+                                                    <span>{index1}</span>
+                                                    <div
+                                                        className="absolute bottom-0  h-1 w-full  cursor-row-resize"
+                                                        onMouseDown={(e) => handleMouseDowny(e, index1)}
+                                                    ></div>
+                                                </div>
+                                            }
+                                        </td>
+                                    ))}
+                                </tr>
+                            ))
+                        }
+                    </tbody>
+                </table>
 
 
+            </section>
+            {configuraciones && (
+                <section className="animate__animated    animate__fadeInRightBig px-5 py-3 fixed flex flex-col gap-2  h-screen top-0 right-0 w-96 bg-white border-l border-blue-400 z-50">
+                    <span className="text-sm font-semibold border-b border-blue-500 py-1">Configuraciones generales </span>
+                    {/* apariencia */}
+                    <details>
+                        <summary>Apariencia</summary>
+                        <div className="flex flex-col  px-1">
+                            <div className="flex flex-row gap-2 items-center  px-5 m-0 p-0  ">
+                                <span className="text-blue-400">├</span>
+                                <input type="checkbox" />
+                                <span>Bordes celdas </span>
+                            </div>
+                            <div className="flex flex-row gap-2 items-center  px-5 m-0 p-0 ">
+                                <span className="text-blue-400">├</span>
+                                <input type="checkbox" />
+                                <span>Titulos Columnas</span>
+                            </div>
+                            <div className="flex flex-row gap-2 items-center  px-5 m-0 p-0 ">
+                                <span className="text-blue-400">├</span>
+                                <input type="checkbox" />
+                                <span>Titulos Filas</span>
+                            </div>
+                            <div className="flex flex-row gap-2 items-center  px-5 m-0 p-0 ">
+                                <span className="text-blue-400">└</span>
+                                <input type="color" />
+                                <span>Fondo</span>
+                            </div>
+
+                        </div>
+                    </details>
+                    <details>
+                        <summary>Area de impresion</summary>
+                        <div className="flex flex-col  px-1">
+                            <div className="flex flex-row gap-2 items-center  px-5 m-0 p-0  ">
+                                <span className="text-blue-400">├</span>
+                                <span className="text-xs">Rango de impresion </span>
+                                <input type="text" className="border rounded-sm border-blue-400 px-1" placeholder="columna:Fila" />
+                            </div>
+                            <div className="flex flex-row gap-2 items-center  px-5 m-0 p-0  ">
+                                <span className="text-blue-400">├</span>
+                                <span className="text-xs">Rango de Titulos </span>
+                                <input type="text" className="border rounded-sm border-blue-400 px-1" placeholder="columna:Fila" />
+                            </div>
+                            <div className="flex flex-row gap-2 items-center  px-5 m-0 p-0  ">
+                                <span className="text-blue-400">├</span>
+                                <span className="text-xs">Rango de Contenido </span>
+                                <input type="text" className="border rounded-sm border-blue-400 px-1" placeholder="columna:Fila" />
+                            </div>
+                            <div className="flex flex-row gap-2 items-center  px-5 m-0 p-0  ">
+                                <span className="text-blue-400">└</span>
+                                <span className="text-xs">Rango de Pie de pagina</span>
+                                <input type="text" className="border rounded-sm border-blue-400 px-1" placeholder="columna:Fila" />
+                            </div>
+                        </div>
+                    </details>
+                </section>
+            )}
+            {graficos && (
+                <section className="animate__animated    animate__fadeInRightBig px-5 py-3 fixed flex flex-col gap-2  h-screen top-0 right-0 w-96 bg-white border-l border-blue-400 z-50">
+                    <span className="text-sm font-semibold border-b border-blue-500 py-1">Selecciona la grafica </span>
+                    {/* apariencia */}
+                    <div className="flex flex-wrap gap-1 items-center justify-center">
+                        <div className=" w-32 h-20 flex flex-col gap-2  items-center justify-center border p-2 rounded-sm border-blue-400 hover:bg-gray-200 ">
+                            <ChartColumn size={30} />
+                            <span className="text-sm">Barras </span>
+                        </div>
+                        <div className="flex w-32 h-20 flex-col gap-2  items-center justify-center border p-2 rounded-sm border-blue-400 hover:bg-gray-200 ">
+                            <ChartLine size={30} />
+                            <span className="text-sm">Lineas </span>
+                        </div>
+                        <div className="flex w-32 h-20 flex-col gap-2  items-center justify-center border p-2 rounded-sm border-blue-400 hover:bg-gray-200 ">
+                            <ChartPie size={30} />
+                            <span className="text-sm">Torta </span>
+                        </div>
+                        <div className="flex w-32 h-20 flex-col gap-2  items-center justify-center border p-2 rounded-sm border-blue-400 hover:bg-gray-200 ">
+                            <ChartCandlestick size={30} />
+                            <span className="text-sm">Velas </span>
+                        </div>
+                        <div className="flex w-32 h-20 flex-col gap-2  items-center justify-center border p-2 rounded-sm border-blue-400 hover:bg-gray-200 ">
+                            <ChartScatter size={30} />
+                            <span className="text-sm">Dispercion </span>
+                        </div>
+                        <div className="flex w-32 h-20 flex-col gap-2  items-center justify-center border p-2 rounded-sm border-blue-400 hover:bg-gray-200 ">
+                            <ChartArea size={30} />
+                            <span className="text-sm">Area </span>
+                        </div>
+                        <div className="flex w-32 h-20 flex-col gap-2  items-center justify-center border p-2 rounded-sm border-blue-400 hover:bg-gray-200 ">
+                            <MapPlus size={30} />
+                            <span className="text-sm">Mapa </span>
+                        </div>
+
+                    </div>
+                </section>
+            )}
         </section>
     )
 }
