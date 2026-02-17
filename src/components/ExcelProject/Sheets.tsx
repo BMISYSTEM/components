@@ -67,6 +67,7 @@ interface ImageItem {
     left: number; // px
     width: number; // px
     height: number; // px
+    cell?: string; // optional cell key "col:row"
 }
 
 interface Rangos {
@@ -82,8 +83,8 @@ export const Sheets = () => {
     const [bagroundColor, setBagroundColor] = useState("")
     const [configSheet, setConfigSheet] = useState<ConfigSheet>({
         baground: "#ffffff",
-        columns: 30,
-        rows: 40,
+        columns: 60,
+        rows: 60,
         titleColumn: true,
         titleRow: true,
     });
@@ -91,8 +92,8 @@ export const Sheets = () => {
         sheet: {
             rows: configSheet.rows,
             columns: configSheet.columns,
-            defaultRowHeight: 30,
-            defaultColumnWidth: 100,
+            defaultRowHeight: 5,
+            defaultColumnWidth: 5,
             background: configSheet.baground,
         },
         values: {},
@@ -574,20 +575,40 @@ export const Sheets = () => {
         const defaultColWidth = sheetModel.sheet.defaultColumnWidth || 100;
         const defaultRowHeight = sheetModel.sheet.defaultRowHeight || 30;
 
-        const colsCount = endC - startC + 1;
+        // calcular anchos y altos por celda (la columna 0 tiene ancho fijo 50px en la UI)
+        const colWidths: number[] = [];
+        for (let c = startC; c <= endC; c++) {
+            const w = c === 0 ? 50 : (sheetModel.columnSizes?.[c] ?? defaultColWidth);
+            colWidths.push(w);
+        }
+        const rowHeights: number[] = [];
+        for (let rr = startR; rr <= endR; rr++) rowHeights.push(sheetModel.rowSizes?.[rr] ?? defaultRowHeight);
+
+        const areaWidth = colWidths.reduce((a, b) => a + b, 0);
+        const areaHeight = rowHeights.reduce((a, b) => a + b, 0);
+
+        // offsets antes del inicio (en px) para convertir coordenadas absolutas de imágenes
+        const accumCol: number[] = [];
+        for (let i = 0; i < startC; i++) {
+            const w = i === 0 ? 50 : (sheetModel.columnSizes?.[i] ?? defaultColWidth);
+            accumCol.push(w);
+        }
+        const offsetBeforeStartCol = accumCol.reduce((a, b) => a + b, 0);
+
+        const accumRow: number[] = [];
+        for (let i = 0; i < startR; i++) accumRow.push(sheetModel.rowSizes?.[i] ?? defaultRowHeight);
+        const offsetBeforeStartRow = accumRow.reduce((a, b) => a + b, 0);
 
         let html = `<!doctype html><html><head><meta charset="utf-8"><title>Impresión</title>`;
-        // No mostrar líneas de cuadrícula por defecto; los bordes se aplican por celda
-        html += `<style>table{border-collapse:collapse;width:100%;}td,th{padding:4px;vertical-align:top;border:none;} </style>`;
+        html += `<style>body{margin:0;padding:0} .print-wrapper{position:relative;width:${areaWidth}px;height:${areaHeight}px;} table{border-collapse:collapse;position:absolute;left:0;top:0;} td,th{padding:4px;vertical-align:top;border:none;}</style>`;
         html += `</head><body>`;
+
+        html += `<div class="print-wrapper">`;
         html += `<table>`;
-
-        // OMITIR títulos y primera columna en impresión (según petición)
-
         html += `<tbody>`;
+
         for (let row = startR; row <= endR; row++) {
             html += `<tr>`;
-
             for (let col = startC; col <= endC; col++) {
                 const merge = getMergeInfo(row, col);
                 if (merge && !merge.isMaster) continue;
@@ -597,14 +618,14 @@ export const Sheets = () => {
 
                 const bg = getCellStyle(row, col);
                 const w = sheetModel.columnSizes?.[col] ?? defaultColWidth;
-                // si la celda está combinada en vertical, sumar alturas de filas implicadas
                 const h = merge && merge.rowSpan && merge.rowSpan > 1
                     ? Array.from({ length: merge.rowSpan }).reduce((acc:any, _, i) => acc + (sheetModel.rowSizes?.[row + i] ?? defaultRowHeight), 0)
                     : (sheetModel.rowSizes?.[row] ?? defaultRowHeight);
 
                 const value = getCellValue(row, col);
+                const cellKey = `${col}:${row}`;
+                const imgsInCell = (sheetModel.images || []).filter((im) => im.cell === cellKey);
 
-                // construir CSS de bordes según estilos guardados (si existen)
                 const cellStyle = (getConfigStyle(row, col) || {}) as Partial<stylesCells>;
                 let borderCss = "";
                 if (cellStyle.borderAll) {
@@ -616,24 +637,47 @@ export const Sheets = () => {
                     if (cellStyle.borderRight) borderCss += `border-right:${cellStyle.borderRight};`;
                 }
 
-                // alineaciones
                 let alignCss = "";
-                if (cellStyle.align) {
-                    alignCss += `text-align:${cellStyle.align};`;
-                }
-                if (cellStyle.vAlign) {
-                    // vertical-align para impresión (top|middle|bottom)
-                    alignCss += `vertical-align:${cellStyle.vAlign === 'middle' ? 'middle' : cellStyle.vAlign};`;
-                }
+                if (cellStyle.align) alignCss += `text-align:${cellStyle.align};`;
+                if (cellStyle.vAlign) alignCss += `vertical-align:${cellStyle.vAlign === 'middle' ? 'middle' : cellStyle.vAlign};`;
 
                 const styleAttr = `background:${bg};width:${w}px;height:${h}px;${borderCss}${alignCss}`;
+                // construir contenido de la celda incluyendo imágenes asignadas a la celda
+                let inner = `${value}`;
+                for (const ci of imgsInCell) {
+                    inner += `<div style="margin-top:4px;"><img src="${ci.src}" style="max-width:100%;height:auto;display:block;" /></div>`;
+                }
 
-                html += `<td ${rowspan} ${colspan} style="${styleAttr}">${value}</td>`;
+                html += `<td ${rowspan} ${colspan} style="${styleAttr}">${inner}</td>`;
             }
-
             html += `</tr>`;
         }
+
         html += `</tbody></table>`;
+
+        // incluir imágenes que intersecten el área
+        const images = sheetModel.images || [];
+        for (const img of images) {
+            const imgLeft = img.left;
+            const imgTop = img.top;
+            const imgRight = imgLeft + img.width;
+            const imgBottom = imgTop + img.height;
+
+            const areaLeft = offsetBeforeStartCol;
+            const areaTop = offsetBeforeStartRow;
+            const areaRight = areaLeft + areaWidth;
+            const areaBottom = areaTop + areaHeight;
+
+            const intersects = !(imgRight < areaLeft || imgLeft > areaRight || imgBottom < areaTop || imgTop > areaBottom);
+            if (!intersects) continue;
+
+            const relLeft = Math.max(0, imgLeft - areaLeft);
+            const relTop = Math.max(0, imgTop - areaTop);
+
+            html += `<img src="${img.src}" style="position:absolute;left:${relLeft}px;top:${relTop}px;width:${img.width}px;height:${img.height}px;object-fit:contain;" />`;
+        }
+
+        html += `</div>`;
         html += `</body></html>`;
         return html;
     };
@@ -736,6 +780,9 @@ export const Sheets = () => {
                 width: 120,
                 height: 80,
             };
+            // asignar la imagen a la celda activa (si hay una)
+            const cellKey = `${activeCell.col}:${activeCell.row}`;
+            newImg.cell = cellKey;
             setSheetModel((prev) => ({ ...prev, images: [...(prev.images || []), newImg] }));
             // limpiar input
             const input = document.getElementById("__img_input") as HTMLInputElement | null;
@@ -1005,6 +1052,7 @@ export const Sheets = () => {
                             <tr key={index1} className="p-0 m-0">
                                 {Array.from({ length: configSheet.columns }).map(
                                     (_, index2) => {
+                                        const cellKeyRender = `${index2}:${index1}`;
                                         const merge = getMergeInfo(index1, index2);
                                         if (merge && !merge.isMaster) return null;
                                         return (
@@ -1095,48 +1143,40 @@ export const Sheets = () => {
                                                             const cfg = getConfigStyle(index1, index2);
                                                             const v = cfg?.vAlign;
                                                             const justifyInner = v === "middle" ? "center" : v === "bottom" ? "flex-end" : "flex-start";
-                                                            if (v) {
+                                                            // mostrar o textarea O las imágenes ancladas, nunca ambos
+                                                            const imgsInCell = (sheetModel.images || []).filter(i => i.cell === cellKeyRender);
+                                                            if (imgsInCell.length > 0) {
                                                                 return (
-                                                                    <div style={{ display: "flex", flexDirection: "column", justifyContent: justifyInner, height: "100%", width: "100%" }}>
-                                                                        <textarea
-                                                                            data-row={index1}
-                                                                            data-col={index2}
-                                                                            value={sheetModel.values[`${index2}:${index1}`] ?? ""}
-                                                                            onKeyDown={(e) => handleKeyDown(e, index1, index2)}
-                                                                            style={{
-                                                                                height: "auto",
-                                                                                margin: 0,
-                                                                                padding: 0,
-                                                                                resize: "none",
-                                                                                backgroundColor: cfg?.background ?? "",
-                                                                                textAlign: cfg?.align as any,
-                                                                                width: "100%",
-                                                                            }}
-                                                                            onChange={(e) => saveTextSheets(e.target.value, index1, index2)}
-                                                                            className="relative m-0 p-0 border  focus:z-50 w-full outline-none focus:ring-1 ring-blue-500"
-                                                                        />
+                                                                    <div style={{ width: "100%", height: "100%" }}>
+                                                                        {imgsInCell.map(img => (
+                                                                            <div key={img.id} style={{ width: "100%", height: "100%" }}>
+                                                                                <img src={img.src} alt="img" style={{ width: "100%", height: "100%", objectFit: "contain", display: "block" }} />
+                                                                            </div>
+                                                                        ))}
                                                                     </div>
                                                                 );
                                                             }
 
                                                             return (
-                                                                <textarea
-                                                                    data-row={index1}
-                                                                    data-col={index2}
-                                                                    value={sheetModel.values[`${index2}:${index1}`] ?? ""}
-                                                                    onKeyDown={(e) => handleKeyDown(e, index1, index2)}
-                                                                    style={{
-                                                                        height: "100%",
-                                                                        margin: 0,
-                                                                        padding: 0,
-                                                                        resize: "none",
-                                                                        backgroundColor: cfg?.background ?? "",
-                                                                        textAlign: cfg?.align as any,
-                                                                        width: "100%",
-                                                                    }}
-                                                                    onChange={(e) => saveTextSheets(e.target.value, index1, index2)}
-                                                                    className="relative m-0 p-0 border  focus:z-50 w-full outline-none focus:ring-1 ring-blue-500"
-                                                                />
+                                                                <div style={{ display: "flex", flexDirection: "column", justifyContent: justifyInner, height: "100%", width: "100%" }}>
+                                                                    <textarea
+                                                                        data-row={index1}
+                                                                        data-col={index2}
+                                                                        value={sheetModel.values[cellKeyRender] ?? ""}
+                                                                        onKeyDown={(e) => handleKeyDown(e, index1, index2)}
+                                                                        style={{
+                                                                            height: "100%",
+                                                                            margin: 0,
+                                                                            padding: 0,
+                                                                            resize: "none",
+                                                                            backgroundColor: cfg?.background ?? "",
+                                                                            textAlign: cfg?.align as any,
+                                                                            width: "100%",
+                                                                        }}
+                                                                        onChange={(e) => saveTextSheets(e.target.value, index1, index2)}
+                                                                        className="relative m-0 p-0 border  focus:z-50 w-full outline-none focus:ring-1 ring-blue-500"
+                                                                    />
+                                                                </div>
                                                             );
                                                         })()}
                                                     </>
@@ -1161,8 +1201,8 @@ export const Sheets = () => {
                     </tbody>
                     </table>
 
-                    {/* imágenes flotantes (sobre la tabla) */}
-                    {(sheetModel.images || []).map((img) => (
+                    {/* imágenes flotantes (sobre la tabla) - solo las que NO están ancladas a una celda */}
+                    {(sheetModel.images || []).filter(img => !img.cell).map((img) => (
                         <div
                             key={img.id}
                             onClick={(e) => { e.stopPropagation(); setSelectedImageId(img.id); }}

@@ -16,10 +16,14 @@
     "d3": "^7.9.0",
     "echarts": "^5.6.0",
     "echarts-for-react": "^3.0.3",
+    "grapesjs": "^0.22.14",
+    "konva": "^10.2.0",
     "lucide-react": "^0.561.0",
+    "polotno": "^2.36.5",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "react-grid-layout": "^1.5.0"
+    "react-grid-layout": "^1.5.0",
+    "react-konva": "^18.2.14"
   },
   "devDependencies": {
     "@eslint/js": "^9.15.0",

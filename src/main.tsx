@@ -9,6 +9,8 @@ import { Barras } from "./components/Graficas/Barras.tsx";
 import { Funel } from "./components/Graficas/Funel.tsx";
 import { ReportDesing } from "./components/ReportDesing.tsx";
 import { Sheets } from "./components/ExcelProject/Sheets.tsx";
+import { Editor } from "./components/ExcelProject/Editor.tsx";
+
 /**data para la tabla  */
 const data = [
   { id: 1, name: "Juan", age: 28, email: "juan@example.com" },
@@ -26,6 +28,7 @@ createRoot(document.getElementById("root")!).render(
     {/*<Barras/>*/}
     {/*<Funel/>*/}
     {/* <ReportDesing /> */}
-    <Sheets/>
+   {/*  <Sheets/> */}
+   <Editor/>
   </StrictMode>,
 );
