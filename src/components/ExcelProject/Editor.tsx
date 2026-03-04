@@ -1,6 +1,8 @@
 import { useEffect, useRef } from "react";
 import grapesjs from "grapesjs";
 import "grapesjs/dist/css/grapes.min.css";
+import Handlebars from "handlebars";
+import * as cheerio from 'cheerio';
 
 export const Editor = () => {
   const editorRef = useRef<any>(null);
@@ -9,11 +11,11 @@ export const Editor = () => {
     if (editorRef.current) return;
 
     const editor = grapesjs.init({
-       container: "#gjs",
-  height: "100vh",
-  storageManager: false,
-  avoidInlineStyle: false,
-  forceClass: false,
+      container: "#gjs",
+      height: "100vh",
+      storageManager: false,
+      avoidInlineStyle: false,
+      forceClass: false,
 
       blockManager: {
         blocks: [
@@ -110,21 +112,168 @@ ${html}
     });
   }, []);
 
-  const handleSave = () => {
-    const editor = editorRef.current;
-    if (!editor) return;
 
-    const html = editor.getHtml();
-    const css = editor.getCss();
-
-    console.log("HTML:", html);
-    console.log("CSS:", css);
+  const datos = {
+    empresa: "SUPERMERCADO BAYRON",
+    nit: "900123456-7",
+    direccion: "Calle 123 #45-67",
+    telefono: "3001234567",
+    numeroFactura: "FAC-00123",
+    fecha: "04/03/2026",
+    cajero: "Juan Perez",
+    subtotal: "45.000",
+    iva: "8.550",
+    totalGeneral: "53.550",
+    mensajeFinal: "Vuelva pronto",
+    items: [
+      {
+        producto: "Arroz 1kg",
+        cantidad: 2,
+        precioUnitario: "3.000",
+        total: "6.000"
+      },
+      {
+        producto: "Leche Entera",
+        cantidad: 1,
+        precioUnitario: "4.500",
+        total: "4.500"
+      }
+    ]
   };
+
+  function render(html: string, datos: any): string {
+    // 1️⃣ Reemplazo global de campos simples (no arrays)
+    let resultado = html.replace(/{{(.*?)}}/g, (match, key) => {
+      if (key.trim() === 'items') return match;
+      return datos[key.trim()] ?? match;
+    });
+
+    const $ = cheerio.load(resultado);
+
+    const filaTemplate = $(".item-template").first();
+
+    if (filaTemplate.length && Array.isArray(datos.items)) {
+
+      const templateHtml = filaTemplate.html()!;
+
+      datos.items.forEach((item: any) => {
+
+        const nuevaFila = filaTemplate.clone();
+
+        const filaRenderizada = templateHtml.replace(/{{(.*?)}}/g, (match, key) => {
+          return item[key.trim()] ?? '';
+        });
+
+        nuevaFila.html(filaRenderizada);
+
+        filaTemplate.parent().append(nuevaFila);
+      });
+
+      filaTemplate.remove();
+    }
+    console.log($.html())
+    return $.html();
+  }
 
   return (
     <>
-      <button onClick={handleSave}>Guardar Plantilla</button>
+      <button onClick={() => render(editorRef.current.getHtml(), datos)}>Generar pdf </button>
       <div id="gjs" />
     </>
   );
 };
+
+
+// ejemplo plantilla
+
+// campos simples se agregan en {{}} como datos del sistema ejemplo {{fecha}} o {{nombre_empresa}}
+// los datos de tabla se agregan con data-field="variable"
+// <!DOCTYPE html>
+// <html>
+// <head>
+// <meta charset="UTF-8">
+// </head>
+
+// <body style="font-family: Arial, sans-serif; color:#333333; margin:40pt;">
+
+//   <!-- HEADER -->
+//   <div style="text-align:center; margin-bottom:30pt;">
+//     <h1 style="margin:0; font-size:22pt; color:#1F3A8A;">
+//       COTIZACIÓN
+//     </h1>
+//     <p style="margin:4pt 0 0 0; font-size:10pt; color:#666666;">
+//       N° {{numero_cotizacion}}
+//     </p>
+//   </div>
+
+//   <!-- EMPRESA -->
+//   <div style="margin-bottom:20pt;">
+//     <p style="margin:0; font-size:12pt;">
+//       <strong>{{empresa_nombre}}</strong>
+//     </p>
+//     <p style="margin:2pt 0; font-size:10pt;">
+//       NIT: {{empresa_nit}}
+//     </p>
+//     <p style="margin:2pt 0; font-size:10pt;">
+//       Tel: {{empresa_telefono}}
+//     </p>
+//   </div>
+
+//   <!-- CLIENTE -->
+//   <div style="margin-bottom:20pt;">
+//     <p style="margin:2pt 0; font-size:11pt;">
+//       <strong>Cliente:</strong> {{nombre}}
+//     </p>
+//     <p style="margin:2pt 0; font-size:11pt;">
+//       <strong>Email:</strong> {{email}}
+//     </p>
+//     <p style="margin:2pt 0; font-size:11pt;">
+//       <strong>Fecha:</strong> {{fecha}}
+//     </p>
+//   </div>
+
+//   <!-- TABLA PRODUCTOS -->
+//   <table id="tabla-productos"
+//          style="width:100%; border-collapse:collapse; margin-top:20pt;">
+
+//     <thead>
+//       <tr style="background-color:#1F3A8A; color:white;">
+//         <th style="padding:8pt; font-size:10pt; text-align:left;">Producto</th>
+//         <th style="padding:8pt; font-size:10pt; text-align:center;">Cantidad</th>
+//         <th style="padding:8pt; font-size:10pt; text-align:right;">Precio</th>
+//         <th style="padding:8pt; font-size:10pt; text-align:right;">Total</th>
+//       </tr>
+//     </thead>
+
+//     <tbody>
+
+//       <!-- FILA BASE (NO SE RENDERIZA, SE USA COMO TEMPLATE) -->
+//       <tr class="item-template" style="border-bottom:1pt solid #DDDDDD;">
+//         <td style="padding:8pt; font-size:10pt;" data-field="producto"></td>
+//         <td style="padding:8pt; font-size:10pt; text-align:center;" data-field="cantidad"></td>
+//         <td style="padding:8pt; font-size:10pt; text-align:right;" data-field="precio"></td>
+//         <td style="padding:8pt; font-size:10pt; text-align:right;" data-field="total"></td>
+//       </tr>
+
+//     </tbody>
+//   </table>
+
+//   <!-- TOTALES -->
+//   <div style="margin-top:20pt; text-align:right;">
+//     <p style="font-size:11pt; margin:3pt 0;">
+//       Subtotal: <strong>{{subtotal}}</strong>
+//     </p>
+//     <p style="font-size:11pt; margin:3pt 0;">
+//       IVA: <strong>{{iva}}</strong>
+//     </p>
+//     <p style="font-size:13pt; margin:5pt 0; color:#1F3A8A;">
+//       TOTAL: <strong>{{total_general}}</strong>
+//     </p>
+//   </div>
+
+//   <div style="margin-top:40pt; font-size:9pt; text-align:center; color:#777777;">
+//     Gracias por confiar en nosotros.
+//   </div>
+
+// </body>
+// </html>
