@@ -1,9 +1,8 @@
 import { useEffect, useRef } from "react";
 import grapesjs from "grapesjs";
 import "grapesjs/dist/css/grapes.min.css";
-import Handlebars from "handlebars";
 import * as cheerio from 'cheerio';
-
+import fondo1 from "./assets/fondo1.avif"
 export const Editor = () => {
   const editorRef = useRef<any>(null);
 
@@ -54,7 +53,6 @@ export const Editor = () => {
 
     editorRef.current = editor;
 
-    /* 🔥 COMANDO PARA EDITAR HTML + CSS */
     editor.Commands.add("edit-html-full", {
       run(editor: any) {
         const html = editor.getHtml();
@@ -103,7 +101,6 @@ ${html}
       },
     });
 
-    /* 🔥 BOTÓN EN LA BARRA SUPERIOR */
     editor.Panels.addButton("options", {
       id: "edit-html-full",
       label: "</>",
@@ -114,6 +111,7 @@ ${html}
 
 
   const datos = {
+    background:fondo1,
     empresa: "SUPERMERCADO BAYRON",
     nit: "900123456-7",
     direccion: "Calle 123 #45-67",
@@ -141,8 +139,7 @@ ${html}
     ]
   };
 
-  function render(html: string, datos: any): string {
-    // 1️⃣ Reemplazo global de campos simples (no arrays)
+  function render(html: string, datos: any) {
     let resultado = html.replace(/{{(.*?)}}/g, (match, key) => {
       if (key.trim() === 'items') return match;
       return datos[key.trim()] ?? match;
@@ -171,8 +168,33 @@ ${html}
 
       filaTemplate.remove();
     }
-    console.log($.html())
-    return $.html();
+
+    const htmlFinal = $.html();
+
+    const ventana = window.open('', '_blank', 'width=400,height=800');
+
+    if (!ventana) return;
+
+    ventana.document.write(`
+    <html>
+      <head>
+        <title>Imprimir</title>
+      </head>
+      <body>
+        ${htmlFinal}
+      </body>
+    </html>
+  `);
+
+    ventana.document.close();
+
+    ventana.focus();
+
+    ventana.print();
+
+    ventana.onafterprint = () => {
+      ventana.close();
+    };
   }
 
   return (
